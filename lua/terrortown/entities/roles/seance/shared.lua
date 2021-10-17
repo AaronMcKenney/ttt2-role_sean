@@ -290,68 +290,7 @@ if CLIENT then
 		end
 	end)
 	
-	--BMF--local function CreateOrb(ply)
-	--BMF--	ply.sean_orb = {}
-	--BMF--	
-	--BMF--	--Center of mass that the creates the "gravitational pull"
-	--BMF--	ply.sean_orb.center = ply:GetPos()
-	--BMF--	--Move it up slightly so it isn't in the floor
-	--BMF--	ply.sean_orb.center.z = ply.sean_orb.center.z + POS_Z_RAISE_FLOOR
-	--BMF--	
-	--BMF--	ply.sean_orb.pos = Vector(
-	--BMF--		ply.sean_orb.center.x + math.random(POS_VARIANCE_FLOOR, POS_VARIANCE_CEIL),
-	--BMF--		ply.sean_orb.center.y + math.random(POS_VARIANCE_FLOOR, POS_VARIANCE_CEIL),
-	--BMF--		ply.sean_orb.center.z + math.random(POS_VARIANCE_FLOOR, POS_VARIANCE_CEIL)
-	--BMF--	)
-	--BMF--	ply.sean_orb.vel = Vector(
-	--BMF--		math.random(VEL_VARIANCE_FLOOR, VEL_VARIANCE_CEIL),
-	--BMF--		math.random(VEL_VARIANCE_FLOOR, VEL_VARIANCE_CEIL),
-	--BMF--		math.random(VEL_VARIANCE_FLOOR, VEL_VARIANCE_CEIL)
-	--BMF--	)
-	--BMF--end
-	--BMF--
-	--BMF--local function ComputeForce(ply, dist_magn)
-	--BMF--	if dist_magn <= MIN_DIST then
-	--BMF--		--Prevent divide by zeroes and large forces from flinging the orb to oblivion
-	--BMF--		return Vector(0, 0, 0)
-	--BMF--	end
-	--BMF--	
-	--BMF--	--Using the vectorized form of Newton's Universal Law of Gravitation:
-	--BMF--	--F = G * m1 * m2 * (ud)/(d^3)
-	--BMF--	--Where ud is the unit vector of the distance between m1 and m2 (dx/d, dy/d, dz/d)
-	--BMF--	
-	--BMF--	local dist_magn_quartic = dist_magn * dist_magn * dist_magn * dist_magn
-	--BMF--	local dist_comp = Vector(
-	--BMF--		ply.sean_orb.center.x - ply.sean_orb.pos.x,
-	--BMF--		ply.sean_orb.center.y - ply.sean_orb.pos.y,
-	--BMF--		ply.sean_orb.center.z - ply.sean_orb.pos.z
-	--BMF--	)
-	--BMF--	
-	--BMF--	--Assume masses to be 1 (G is flubbed to account for this)
-	--BMF--	local force = Vector(
-	--BMF--		GRAV_CONST * dist_comp.x / dist_magn_quartic,
-	--BMF--		GRAV_CONST * dist_comp.y / dist_magn_quartic,
-	--BMF--		GRAV_CONST * dist_comp.z / dist_magn_quartic
-	--BMF--	)
-	--BMF--	
-	--BMF--	return force
-	--BMF--end
-	--BMF--
-	--BMF--local function AdvancementStep(ply, dist_magn)
-	--BMF--	local force = ComputeForce(ply, dist_magn)
-	--BMF--	
-	--BMF--	--Assume masses to be 1, meaning that force is equivalent to acceleration
-	--BMF--	--Assume dt to also be 1.
-	--BMF--	ply.sean_orb.vel.x = ply.sean_orb.vel.x + force.x
-	--BMF--	ply.sean_orb.vel.y = ply.sean_orb.vel.y + force.y
-	--BMF--	ply.sean_orb.vel.z = ply.sean_orb.vel.z + force.z
-	--BMF--	
-	--BMF--	ply.sean_orb.pos.x = ply.sean_orb.pos.x + ply.sean_orb.vel.x
-	--BMF--	ply.sean_orb.pos.y = ply.sean_orb.pos.y + ply.sean_orb.vel.y
-	--BMF--	ply.sean_orb.pos.z = ply.sean_orb.pos.z + ply.sean_orb.vel.z
-	--BMF--end
-	
-	local function CreateOrb2(ply)
+	local function CreateOrb(ply)
 		ply.sean_orb = {}
 		
 		--Center of mass that the creates the "gravitational pull"
@@ -374,7 +313,7 @@ if CLIENT then
 		ply.sean_orb.time_stamp = CurTime()
 	end
 	
-	local function AdvancementStep2(ply)
+	local function AdvancementStep(ply)
 		local time_delta = CurTime() - ply.sean_orb.time_stamp
 		local pos_z_delta = (15 * time_delta) % (2 * ply.sean_orb.pos_z_raise)
 		if pos_z_delta > ply.sean_orb.pos_z_raise then
@@ -402,24 +341,6 @@ if CLIENT then
 		--Except during the first few seconds when they are transitioning from alive to dead, where it updates multiple times each second.
 		--So there are calculations here to fake movement.
 		
-		--BMF TODO
-		--General idea:
-		--For about 10 seconds, the spectator's position will not change.
-		--Simuated movement will be put upon it, such that its position and transparency will fluctuate rapidly.
-		--Explicitly, it should move in a random direction, losing transparency over space.
-		--It is bound by a "cube" about the spectator's position, and will become completely transparent if it crosses the cube's threshold.
-		--If it becomes too transparent, it will fade out and immediately fade in at a different position with a new direction.
-		--For direction, the yellow orb is given an initial position and velocity, as well as a constant acceleration. This will give the yellow orb an arc to follow.
-		--  If this is the first time the yellow orb is spawning (i.e. the player just died) the position and direction should look like it came from the corpse.
-		--For best effects, the yellow orbs should sort of orbit the spectator's position most of the time, while allowing some leeway for them to veer off course.
-		--  Simplest way to do this may actually be to reuse GravityColorizer logic.
-		--
-		--During each draw call, we'll check to see if the spectator's position has updated. 
-		--If it has been updated, then:
-		--  Over the course of 1 second, the center position that the yellow orb is moving about will be interpolated to the spectator's new position.
-		--  If this new position is very far away (greater than the length of two "cubes" lets say) the yellow orb will lose transparency and fade out at the edge of "two cubes", regaining transparency once it is within "two cubes" of the new position.
-		--BMF TODO
-		
 		--Sets the material to a white material that can be easily recolored
 		render.SetColorMaterial()
 		
@@ -446,26 +367,14 @@ if CLIENT then
 				render.SuppressEngineLighting(false)
 				render.MaterialOverride(nil)
 			elseif GetConVar("ttt2_seance_visual_orb_enabled"):GetBool() then
-				--Draw a yellow orb about the spectator
-				--BMF--if not ply.sean_orb then
-				--BMF--	CreateOrb(ply)
-				--BMF--end
-				--BMF--
-				--BMF----Note: Distance calls are very expensive. Minimize use of them!
-				--BMF--local dist_magn = ply.sean_orb.center:Distance(ply.sean_orb.pos)
-				--BMF--if dist_magn >= FADE_DIST then
-				--BMF--	CreateOrb(ply)
-				--BMF--end
-				
 				if not ply.sean_orb or ply:GetPos() ~= ply.sean_orb.center then
-					CreateOrb2(ply)
+					CreateOrb(ply)
 				end
 				
 				render.DrawSphere(ply.sean_orb.pos, 15, 30, 30, ply.sean_orb.color)
 				render.DrawSphere(ply.sean_orb.center, 15, 30, 30, Color(255, 0, 0, 255)) --SEAN_DEBUG
 				
-				--BMF--AdvancementStep(ply, dist_magn)
-				AdvancementStep2(ply)
+				AdvancementStep(ply)
 			end
 		end
 	end)
