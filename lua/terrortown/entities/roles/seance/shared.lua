@@ -428,13 +428,13 @@ if CLIENT then
 					
 					--print("SEAN_DEBUG Create Orb Check (" .. ply:GetName() .. "): cur_time=" .. tostring(cur_time) .. ", time_switch=" .. tostring(ply.sean_orb.time_switch) .. ", fade_lag=" .. tostring(ply.sean_orb.fade_lag))
 					if cur_time >= ply.sean_orb.time_switch + ply.sean_orb.fade_lag then
-						--print("  CREATED NEW ORB")
+						--SEAN_DEBUG --print("  CREATED NEW ORB") --SEAN_DEBUG
 						CreateOrb(ply)
 					end
 				end
 				
 				render.DrawSphere(ply.sean_orb.disp_pos, 15, 30, 30, ply.sean_orb.disp_color)
-				render.DrawSphere(ply.sean_orb.center, 15, 30, 30, Color(255, 0, 0, 255)) --SEAN_DEBUG
+				--SEAN_DEBUG --render.DrawSphere(ply.sean_orb.center, 15, 30, 30, Color(255, 0, 0, 255)) --SEAN_DEBUG
 				
 				AdvancementStep(ply)
 			end
