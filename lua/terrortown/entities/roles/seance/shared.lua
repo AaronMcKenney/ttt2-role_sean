@@ -181,6 +181,7 @@ if CLIENT then
 	local FADE_DIST_SQRD = 300*300
 	local FADE_TIME = 1
 	local FADE_LAG_TBL = {0,0.2,0.4,0.6,0.8,1}
+	local MIN_TIME_BEFORE_SWITCH = 9
 	--Used for drawing outlines around props that fellow spectators have possessed.
 	local MATERIAL_PROPSPEC_OUTLINE = Material("models/props_combine/portalball001_sheet")
 	
@@ -422,12 +423,12 @@ if CLIENT then
 					--Create a new orb state, which the current orb will transition to.
 					--Stagger orb creation via fade_lag, so that all of the orbs don't move at once.
 					local cur_time = CurTime()
-					if not ply.sean_orb.time_switch then
+					if not ply.sean_orb.time_switch and (cur_time - ply.sean_orb.time_stamp >= MIN_TIME_BEFORE_SWITCH) then
 						ply.sean_orb.time_switch = cur_time
 					end
 					
 					--print("SEAN_DEBUG Create Orb Check (" .. ply:GetName() .. "): cur_time=" .. tostring(cur_time) .. ", time_switch=" .. tostring(ply.sean_orb.time_switch) .. ", fade_lag=" .. tostring(ply.sean_orb.fade_lag))
-					if cur_time >= ply.sean_orb.time_switch + ply.sean_orb.fade_lag then
+					if ply.sean_orb.time_switch and (cur_time >= ply.sean_orb.time_switch + ply.sean_orb.fade_lag) then
 						--SEAN_DEBUG --print("  CREATED NEW ORB") --SEAN_DEBUG
 						CreateOrb(ply)
 					end
