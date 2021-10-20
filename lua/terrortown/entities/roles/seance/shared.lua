@@ -289,7 +289,7 @@ if CLIENT then
 		end
 	end)
 	
-	local function CreateOrb(ply)
+	local function CreateOrb(ply, cur_time)
 		if not ply.sean_orb then
 			ply.sean_orb = {}
 		else
@@ -320,17 +320,43 @@ if CLIENT then
 		ply.sean_orb.color = Color(SPEC_COLOR.r, SPEC_COLOR.g, SPEC_COLOR.b, ply.sean_orb.color_a_floor)
 		ply.sean_orb.disp_color = Color(ply.sean_orb.color.r, ply.sean_orb.color.g, ply.sean_orb.color.b, ply.sean_orb.color.a)
 		
-		ply.sean_orb.time_stamp = CurTime()
+		ply.sean_orb.time_stamp = cur_time
 		ply.sean_orb.fade_lag = FADE_LAG_TBL[math.random(#FADE_LAG_TBL)]
 		ply.sean_orb.time_switch = nil
 	end
 	
-	local function Interpolate(x_delta, x_total, y0, y1)
-		return y0 + x_delta * ((y1 - y0) / x_total)
+	local function Interpolate(x, x0, x1, y0, y1)
+		--Linear Interpolation:
+		--  y = y0 + (x - x0) * ((y1 - y0) / (x1 - x0))
+		return y0 + (x - x0) * ((y1 - y0) / (x1 - x0))
 	end
 	
-	local function AdvancementStep(ply)
-		local time_delta = CurTime() - ply.sean_orb.time_stamp
+	local function Smoothstep(x, x0, x1)
+		--"Smooths" a linear interpolation, such that if x is time the particle will move slowly at both the start and end
+		
+		--Clamp x between [0, 1], with 0 representing x0 ("left edge") and 1 representing x1 ("right edge")
+		local x = math.Clamp((x - x0) / (x1 - x0), 0, 1)
+		
+		--Smoothstep:
+		--  x' = 3*x*x - 2*x*x*x
+		--  x' = x*x*(3 - 2*x)
+		--  Where "x" is within [0,1]
+		local ss_x = x * x * (3 - 2 * x)
+		
+		--Map the value from [0,1] back to [x0, x1]
+		--  x'' = x0 + x' * (x1 - x0)
+		return x0 + ss_x * (x1 - x0)
+	end
+	
+	local function SSInterp(x, x0, x1, y0, y1)
+		--Smoothstep Interpolation
+		return Interpolate(Smoothstep(x, x0, x1), x0, x1, y0, y1)
+	end
+	
+	local function AdvancementStep(ply, cur_time)
+		local time_delta = cur_time - ply.sean_orb.time_stamp
+		local t0 = ply.sean_orb.time_stamp
+		local t1 = ply.sean_orb.time_stamp + FADE_TIME
 		
 		local pos_z_delta = (15 * time_delta) % (2 * ply.sean_orb.pos_z_raise)
 		if pos_z_delta > ply.sean_orb.pos_z_raise then
@@ -344,7 +370,6 @@ if CLIENT then
 		ply.sean_orb.pos.z = ply.sean_orb.pos_z_floor + pos_z_delta
 		ply.sean_orb.color.a = ply.sean_orb.color_a_floor + color_a_delta
 		
-		
 		ply.sean_orb.disp_pos.x = ply.sean_orb.pos.x
 		ply.sean_orb.disp_pos.y = ply.sean_orb.pos.y
 		ply.sean_orb.disp_pos.z = ply.sean_orb.pos.z
@@ -352,14 +377,14 @@ if CLIENT then
 		
 		if time_delta < FADE_TIME then
 			if not ply.sean_orb.stale then
-				--Show the orb fading into existance by slowly raising its alpha value from 0.
-				ply.sean_orb.disp_color.a = Interpolate(time_delta, FADE_TIME, 0, ply.sean_orb.color.a)
+				--Show the orb fading into existence by slowly raising its alpha value from 0.
+				ply.sean_orb.disp_color.a = SSInterp(cur_time, t0, t1, 0, ply.sean_orb.color.a)
 			else
 				--If the orb recently changed positions, mess with the display position and alpha to show the sphere moving between its stale and new positions
-				ply.sean_orb.disp_pos.x = Interpolate(time_delta, FADE_TIME, ply.sean_orb.stale.pos.x, ply.sean_orb.pos.x)
-				ply.sean_orb.disp_pos.y = Interpolate(time_delta, FADE_TIME, ply.sean_orb.stale.pos.y, ply.sean_orb.pos.y)
-				ply.sean_orb.disp_pos.z = Interpolate(time_delta, FADE_TIME, ply.sean_orb.stale.pos.z, ply.sean_orb.pos.z)
-				ply.sean_orb.disp_color.a = Interpolate(time_delta, FADE_TIME, ply.sean_orb.stale.color.a, ply.sean_orb.color.a)
+				ply.sean_orb.disp_pos.x = SSInterp(cur_time, t0, t1, ply.sean_orb.stale.pos.x, ply.sean_orb.pos.x)
+				ply.sean_orb.disp_pos.y = SSInterp(cur_time, t0, t1, ply.sean_orb.stale.pos.y, ply.sean_orb.pos.y)
+				ply.sean_orb.disp_pos.z = SSInterp(cur_time, t0, t1, ply.sean_orb.stale.pos.z, ply.sean_orb.pos.z)
+				ply.sean_orb.disp_color.a = SSInterp(cur_time, t0, t1, ply.sean_orb.stale.color.a, ply.sean_orb.color.a)
 				
 				--If the orb is too far away from either its stale or new position, it should be invisible to provide more of a ghostly warping effect.
 				local stale_new_dist_sqrd = ply.sean_orb.pos:DistToSqr(ply.sean_orb.stale.pos)
@@ -367,9 +392,9 @@ if CLIENT then
 					local disp_new_dist_sqrd = ply.sean_orb.disp_pos:DistToSqr(ply.sean_orb.pos)
 					local stale_disp_dist_sqrd = ply.sean_orb.disp_pos:DistToSqr(ply.sean_orb.stale.pos)
 					if disp_new_dist_sqrd < FADE_DIST_SQRD then
-						ply.sean_orb.disp_color.a = Interpolate(disp_new_dist_sqrd, FADE_DIST_SQRD, 0, ply.sean_orb.color.a)
+						ply.sean_orb.disp_color.a = SSInterp(disp_new_dist_sqrd, FADE_DIST_SQRD, 0, 0, ply.sean_orb.color.a)
 					elseif stale_disp_dist_sqrd <= FADE_DIST_SQRD then
-						ply.sean_orb.disp_color.a = Interpolate(stale_disp_dist_sqrd, FADE_DIST_SQRD, ply.sean_orb.stale.color.a, 0)
+						ply.sean_orb.disp_color.a = SSInterp(stale_disp_dist_sqrd, 0, FADE_DIST_SQRD, ply.sean_orb.stale.color.a, 0)
 					else
 						ply.sean_orb.disp_color.a = 0
 					end
@@ -417,12 +442,12 @@ if CLIENT then
 				render.SuppressEngineLighting(false)
 				render.MaterialOverride(nil)
 			elseif GetConVar("ttt2_seance_visual_orb_enabled"):GetBool() then
+				local cur_time = CurTime()
 				if not ply.sean_orb then
-					CreateOrb(ply)
+					CreateOrb(ply, cur_time)
 				elseif ply:GetPos() ~= ply.sean_orb.center then
 					--Create a new orb state, which the current orb will transition to.
 					--Stagger orb creation via fade_lag, so that all of the orbs don't move at once.
-					local cur_time = CurTime()
 					if not ply.sean_orb.time_switch and (cur_time - ply.sean_orb.time_stamp >= MIN_TIME_BEFORE_SWITCH) then
 						ply.sean_orb.time_switch = cur_time
 					end
@@ -430,14 +455,16 @@ if CLIENT then
 					--print("SEAN_DEBUG Create Orb Check (" .. ply:GetName() .. "): cur_time=" .. tostring(cur_time) .. ", time_switch=" .. tostring(ply.sean_orb.time_switch) .. ", fade_lag=" .. tostring(ply.sean_orb.fade_lag))
 					if ply.sean_orb.time_switch and (cur_time >= ply.sean_orb.time_switch + ply.sean_orb.fade_lag) then
 						--SEAN_DEBUG --print("  CREATED NEW ORB") --SEAN_DEBUG
-						CreateOrb(ply)
+						CreateOrb(ply, cur_time)
+					else
+						AdvancementStep(ply, cur_time)
 					end
+				else
+					AdvancementStep(ply, cur_time)
 				end
 				
 				render.DrawSphere(ply.sean_orb.disp_pos, 15, 30, 30, ply.sean_orb.disp_color)
 				--SEAN_DEBUG --render.DrawSphere(ply.sean_orb.center, 15, 30, 30, Color(255, 0, 0, 255)) --SEAN_DEBUG
-				
-				AdvancementStep(ply)
 			end
 		end
 	end)
