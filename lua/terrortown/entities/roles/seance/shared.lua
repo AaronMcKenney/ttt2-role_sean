@@ -335,6 +335,7 @@ if CLIENT then
 		--"Smooths" a linear interpolation, such that if x is time the particle will move slowly at both the start and end
 		
 		--Clamp x between [0, 1], with 0 representing x0 ("left edge") and 1 representing x1 ("right edge")
+		--i.e. Map the value from [x0,x1] to [0, 1]
 		local x = math.Clamp((x - x0) / (x1 - x0), 0, 1)
 		
 		--Smoothstep:
@@ -355,8 +356,6 @@ if CLIENT then
 	
 	local function AdvancementStep(ply, cur_time)
 		local time_delta = cur_time - ply.sean_orb.time_stamp
-		local t0 = ply.sean_orb.time_stamp
-		local t1 = ply.sean_orb.time_stamp + FADE_TIME
 		
 		local pos_z_delta = (15 * time_delta) % (2 * ply.sean_orb.pos_z_raise)
 		if pos_z_delta > ply.sean_orb.pos_z_raise then
@@ -376,6 +375,9 @@ if CLIENT then
 		ply.sean_orb.disp_color.a = ply.sean_orb.color.a
 		
 		if time_delta < FADE_TIME then
+			local t0 = ply.sean_orb.time_stamp
+			local t1 = ply.sean_orb.time_stamp + FADE_TIME
+			
 			if not ply.sean_orb.stale then
 				--Show the orb fading into existence by slowly raising its alpha value from 0.
 				ply.sean_orb.disp_color.a = SSInterp(cur_time, t0, t1, 0, ply.sean_orb.color.a)
