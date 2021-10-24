@@ -312,13 +312,20 @@ if CLIENT then
 			ply.sean_orb.center.y + math.random(POS_XY_VARIANCE_FLOOR, POS_XY_VARIANCE_CEIL),
 			ply.sean_orb.pos_z_floor
 		)
-		ply.sean_orb.disp_pos = Vector(ply.sean_orb.pos.x, ply.sean_orb.pos.y, ply.sean_orb.pos.z)
 		
-		--Create a deep copy of the color here for SPEC_COLOR to avoid messing it up for everyone.
+		--Create a deep copy of the color here for SPEC_COLOR to avoid altering it for all orbs.
 		ply.sean_orb.color_a_floor = math.random(SPEC_COLOR_A_FLOOR, SPEC_COLOR_A_CEIL)
 		ply.sean_orb.color_a_raise = math.random(SPEC_COLOR_A_RAISE_FLOOR, SPEC_COLOR_A_RAISE_CEIL)
 		ply.sean_orb.color = Color(SPEC_COLOR.r, SPEC_COLOR.g, SPEC_COLOR.b, ply.sean_orb.color_a_floor)
-		ply.sean_orb.disp_color = Color(ply.sean_orb.color.r, ply.sean_orb.color.g, ply.sean_orb.color.b, ply.sean_orb.color.a)
+		
+		--Display position/color starts out at the stale of the orb if possible
+		if ply.sean_orb.stale then
+			ply.sean_orb.disp_pos = Vector(ply.sean_orb.stale.pos.x, ply.sean_orb.stale.pos.y, ply.sean_orb.stale.pos.z)
+			ply.sean_orb.disp_color = Color(ply.sean_orb.stale.color.r, ply.sean_orb.stale.color.g, ply.sean_orb.stale.color.b, ply.sean_orb.color.a)
+		else
+			ply.sean_orb.disp_pos = Vector(ply.sean_orb.pos.x, ply.sean_orb.pos.y, ply.sean_orb.pos.z)
+			ply.sean_orb.disp_color = Color(ply.sean_orb.color.r, ply.sean_orb.color.g, ply.sean_orb.color.b, ply.sean_orb.color.a)
+		end
 		
 		ply.sean_orb.time_stamp = cur_time
 		ply.sean_orb.fade_lag = FADE_LAG_TBL[math.random(#FADE_LAG_TBL)]
@@ -369,16 +376,14 @@ if CLIENT then
 		ply.sean_orb.pos.z = ply.sean_orb.pos_z_floor + pos_z_delta
 		ply.sean_orb.color.a = ply.sean_orb.color_a_floor + color_a_delta
 		
-		ply.sean_orb.disp_pos.x = ply.sean_orb.pos.x
-		ply.sean_orb.disp_pos.y = ply.sean_orb.pos.y
-		ply.sean_orb.disp_pos.z = ply.sean_orb.pos.z
-		ply.sean_orb.disp_color.a = ply.sean_orb.color.a
-		
 		if time_delta < FADE_TIME then
 			local t0 = ply.sean_orb.time_stamp
 			local t1 = ply.sean_orb.time_stamp + FADE_TIME
 			
 			if not ply.sean_orb.stale then
+				ply.sean_orb.disp_pos.x = ply.sean_orb.pos.x
+				ply.sean_orb.disp_pos.y = ply.sean_orb.pos.y
+				ply.sean_orb.disp_pos.z = ply.sean_orb.pos.z
 				--Show the orb fading into existence by slowly raising its alpha value from 0.
 				ply.sean_orb.disp_color.a = SSInterp(cur_time, t0, t1, 0, ply.sean_orb.color.a)
 			else
@@ -402,6 +407,11 @@ if CLIENT then
 					end
 				end
 			end
+		else
+			ply.sean_orb.disp_pos.x = ply.sean_orb.pos.x
+			ply.sean_orb.disp_pos.y = ply.sean_orb.pos.y
+			ply.sean_orb.disp_pos.z = ply.sean_orb.pos.z
+			ply.sean_orb.disp_color.a = ply.sean_orb.color.a
 		end
 	end
 	

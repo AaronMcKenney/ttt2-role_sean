@@ -1,6 +1,6 @@
 [i]I see dead people.
  
-...It's pronounced "Shawnce"[/i]
+...It's pronounced "Shawnce".[/i]
  
 You have to use [URL=https://steamcommunity.com/sharedfiles/filedetails/?id=1357204556]TTT2[/URL] in order to use this role. Additionally using [URL=https://steamcommunity.com/sharedfiles/filedetails/?id=1362430347]ULX for TTT2[/URL] is recommended. Report bugs concerning this role [URL=https://github.com/AaronMcKenney/ttt2-role_sean]here[/URL] and submit new role ideas [URL=https://github.com/TTT-2/addon-ideas]here[/URL]. A list of all currently available roles can be found [URL=https://steamcommunity.com/sharedfiles/filedetails/?id=1737053146]here[/URL].
  
@@ -10,7 +10,7 @@ Source: [url=https://github.com/AaronMcKenney/ttt2-role_sean]https://github.com/
  
 [img]https://i.imgur.com/KeP4fWN.png[/img]
  
-The Seance is an Innocent role who can see spectators (sort of). There is a 30 second delay between the player's death and when their "ghost" becomes visible by default. These "ghosts" look like semi-transparent yellow orbs which follow the spectator. They only update their positions every 10 seconds or so, and are offset from the spectator's actual position (so if 6 dead players are spectating the same player, the Seance will see 6 yellow orbs near the player in question, despite all 6 dead players occupying the same position).
+The Seance is an Innocent role who can see spectators (sort of). There is a 30 second delay between the player's death and when their "ghost" becomes visible by default. These "ghosts" look like semi-transparent yellow orbs which follow the spectator. They only update their positions every 10 seconds or so, and are offset from the spectator's actual position (so if 6 dead players are spectating the same player, the Seance will see 6 yellow orbs near the player in question, despite all 6 spectators occupying the same position).
  
 In addition, when one of these orbs appears, the Seance is informed about the recently deceased player's death as well as the number of dead players. Both of these tidbits of information will be 30 seconds old, with their appearance corresponding with the appearance of the "ghosts".
  
