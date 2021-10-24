@@ -37,8 +37,8 @@ Convars are variables that are introduced to allow server owners to customize th
   ttt2_seance_notification_time [0..n] (default: 30)
 # Can The Seance see Spectators as yellow orbs?
   ttt2_seance_visual_orb_enabled [0/1] (default: 1)
-# How many seconds should pass before the orb's position is updated (<=0 will prevent updates, and orb will linger at death position)?
-  ttt2_seance_visual_orb_update_time [0..n] (default: 10)
+# How many seconds should pass before the orb's position is updated (<=1 will prevent updates, and orb will linger at death position)?
+  ttt2_seance_visual_orb_update_time [1..n] (default: 10)
 # Will The Seance receive a text informing them about the recently deceased (Note: Information will not be up to date. It will be off by ttt2_seance_notification_time seconds)?
   ttt2_seance_dead_text_mode [0..2] (default: 1)
   # 0: No textual information

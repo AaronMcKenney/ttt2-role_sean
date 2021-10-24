@@ -85,7 +85,7 @@ if SERVER then
 		
 		local orb_enabled = GetConVar("ttt2_seance_visual_orb_enabled"):GetBool()
 		local orb_update_time = GetConVar("ttt2_seance_visual_orb_update_time"):GetInt()
-		local orb_pos_locked = (orb_update_time <= 0)
+		local orb_pos_locked = (orb_update_time <= 1)
 		
 		spec_ply.sean_spec_pos = spec_ply:GetPos()
 		
@@ -113,7 +113,7 @@ if SERVER then
 		local orb_enabled = GetConVar("ttt2_seance_visual_orb_enabled"):GetBool()
 		local orb_update_time = GetConVar("ttt2_seance_visual_orb_update_time"):GetInt()
 		local death_pos = victim:GetDeathPosition()
-		local orb_pos_locked = (orb_update_time <= 0)
+		local orb_pos_locked = (orb_update_time <= 1)
 		victim.sean_sees_as_dead = true
 		victim.sean_spec_pos = death_pos
 		

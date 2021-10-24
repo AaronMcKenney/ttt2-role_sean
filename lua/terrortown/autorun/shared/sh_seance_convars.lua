@@ -26,12 +26,12 @@ hook.Add("TTTUlxDynamicRCVars", "TTTUlxDynamicSeanceCVars", function(tbl)
 		desc = "ttt2_seance_visual_orb_enabled (Def: 1)"
 	})
 	
-	--# How many seconds should pass before the orb's position is updated (<=0 will prevent updates, and orb will linger at death position)?
-	--  ttt2_seance_visual_orb_update_time [0..n] (default: 10)
+	--# How many seconds should pass before the orb's position is updated (<=1 will prevent updates, and orb will linger at death position)?
+	--  ttt2_seance_visual_orb_update_time [1..n] (default: 10)
 	table.insert(tbl[ROLE_SEANCE], {
 		cvar = "ttt2_seance_visual_orb_update_time",
 		slider = true,
-		min = 0,
+		min = 1,
 		max = 60,
 		decimal = 0,
 		desc = "ttt2_seance_visual_orb_update_time (Def: 10)"
