@@ -4,6 +4,7 @@ if SERVER then
 	util.AddNetworkString("TTT2SeanceInformAboutAll")
 	util.AddNetworkString("TTT2SeanceInformAboutDeath")
 	util.AddNetworkString("TTT2SeanceInformAboutDisconnect")
+	util.AddNetworkString("TTT2SeanceSpectatorPositionUpdate")
 end
 
 function ROLE:PreInitialize()
@@ -72,12 +73,49 @@ if SERVER then
 			net.WriteString(ply:SteamID64())
 			net.WriteString(ply:GetName())
 			net.WriteBool(ply.sean_sees_as_dead == true)
+			net.WriteVector(ply.sean_spec_pos or Vector(0,0,0))
 		end
 		net.Send(ply)
 	end
 	
+	local function UpdateSpectatorPos(spec_ply)
+		if GetRoundState() ~= ROUND_ACTIVE or not spec_ply.sean_sees_as_dead or (spec_ply:Alive() and not IsInSpecDM(spec_ply)) then
+			return
+		end
+		
+		local orb_enabled = GetConVar("ttt2_seance_visual_orb_enabled"):GetBool()
+		local orb_update_time = GetConVar("ttt2_seance_visual_orb_update_time"):GetInt()
+		local orb_pos_locked = (orb_update_time <= 0)
+		
+		spec_ply.sean_spec_pos = spec_ply:GetPos()
+		
+		local plys = player.GetAll()
+		for i = 1, #plys do
+			local ply = plys[i]
+			
+			if ply:GetSubRole() == ROLE_SEANCE then
+				net.Start("TTT2SeanceSpectatorPositionUpdate")
+				net.WriteString(spec_ply:SteamID64())
+				net.WriteString(spec_ply:GetName())
+				net.WriteVector(spec_ply.sean_spec_pos)
+				net.Send(ply)
+			end
+		end
+		
+		if orb_enabled and not orb_pos_locked then
+			timer.Create("SeanceUpdateSpectatorPosTimer_" .. spec_ply:SteamID64(), orb_update_time, 1, function()
+				UpdateSpectatorPos(spec_ply)
+			end)
+		end
+	end
+	
 	local function InformSeanceAboutTheDeceased(victim, num_dead_plys)
+		local orb_enabled = GetConVar("ttt2_seance_visual_orb_enabled"):GetBool()
+		local orb_update_time = GetConVar("ttt2_seance_visual_orb_update_time"):GetInt()
+		local death_pos = victim:GetDeathPosition()
+		local orb_pos_locked = (orb_update_time <= 0)
 		victim.sean_sees_as_dead = true
+		victim.sean_spec_pos = death_pos
 		
 		local plys = player.GetAll()
 		for i = 1, #plys do
@@ -87,9 +125,16 @@ if SERVER then
 				net.Start("TTT2SeanceInformAboutDeath")
 				net.WriteString(victim:SteamID64())
 				net.WriteString(victim:GetName())
+				net.WriteVector(death_pos)
 				net.WriteInt(num_dead_plys, 16)
 				net.Send(ply)
 			end
+		end
+		
+		if orb_enabled and not orb_pos_locked then
+			timer.Create("SeanceUpdateSpectatorPosTimer_" .. victim:SteamID64(), orb_update_time, 1, function()
+				UpdateSpectatorPos(victim)
+			end)
 		end
 	end
 	
@@ -117,6 +162,7 @@ if SERVER then
 			timer.Remove("SeanceInformDeathTimer_" .. disconnected_ply:SteamID64())
 		end
 		disconnected_ply.sean_sees_as_dead = nil
+		disconnected_ply.sean_spec_pos = nil
 		
 		local plys = player.GetAll()
 		for i = 1, #plys do
@@ -156,7 +202,11 @@ if SERVER then
 			if timer.Exists("SeanceInformDeathTimer_" .. ply:SteamID64()) then
 				timer.Remove("SeanceInformDeathTimer_" .. ply:SteamID64())
 			end
+			if timer.Exists("SeanceUpdateSpectatorPosTimer_" .. ply:SteamID64()) then
+				timer.Remove("SeanceUpdateSpectatorPosTimer_" .. ply:SteamID64())
+			end
 			ply.sean_sees_as_dead = nil
+			ply.sean_spec_pos = nil
 		end
 	end
 	hook.Add("TTTPrepareRound", "TTTPrepareRoundSeanceForServer", ResetSeanceDataForServer)
@@ -181,7 +231,7 @@ if CLIENT then
 	local FADE_DIST_SQRD = 300*300
 	local FADE_TIME = 1
 	local FADE_LAG_TBL = {0,0.2,0.4,0.6,0.8,1}
-	local MIN_TIME_BEFORE_SWITCH = 9
+	local MIN_TIME_BEFORE_SWITCH = 0
 	--Used for drawing outlines around props that fellow spectators have possessed.
 	local MATERIAL_PROPSPEC_OUTLINE = Material("models/props_combine/portalball001_sheet")
 	
@@ -208,6 +258,7 @@ if CLIENT then
 			local ply_i_id = net.ReadString()
 			local ply_i_name = net.ReadString()
 			local ply_i_is_dead = net.ReadBool()
+			local ply_i_spec_pos = net.ReadVector()
 			
 			for j = 1, #plys do
 				local ply_j = plys[j]
@@ -215,6 +266,7 @@ if CLIENT then
 				if PlayerKeyCompare(ply_j, ply_i_id, ply_i_name) then
 					if ply_i_is_dead then
 						ply_j.sean_sees_as_dead = true
+						ply_j.sean_spec_pos = ply_i_spec_pos
 						num_dead_plys = num_dead_plys + 1
 						
 						if mode == TEXT_MODE.NAMED then
@@ -226,6 +278,7 @@ if CLIENT then
 						end
 					else
 						ply_j.sean_sees_as_dead = nil
+						ply_j.sean_spec_pos = nil
 					end
 					
 					break
@@ -245,6 +298,7 @@ if CLIENT then
 		local mode = GetConVar("ttt2_seance_dead_text_mode"):GetInt()
 		local ply_id = net.ReadString()
 		local ply_name = net.ReadString()
+		local ply_death_pos = net.ReadVector()
 		local num_dead_plys = net.ReadInt(16)
 		
 		--print("SEAN_DEBUG TTT2SeanceInformAboutDeath: ply_name=" .. ply_name .. ", ply_id=" .. ply_id .. ", num_dead_plys=" .. tostring(num_dead_plys))
@@ -255,6 +309,7 @@ if CLIENT then
 			
 			if PlayerKeyCompare(ply, ply_id, ply_name) then
 				ply.sean_sees_as_dead = true
+				ply.sean_spec_pos = ply_death_pos
 				
 				--print("SEAN_DEBUG TTT2SeanceInformAboutDeath: Marking " .. ply:GetName() .. " as dead.")
 				
@@ -289,6 +344,22 @@ if CLIENT then
 		end
 	end)
 	
+	net.Receive("TTT2SeanceSpectatorPositionUpdate", function()
+		--Needed as the spectator positions normally only update every 10 seconds simultaneously.
+		local client = LocalPlayer()
+		local ply_id = net.ReadString()
+		local ply_name = net.ReadString()
+		local ply_pos = net.ReadVector()
+		
+		local plys = player.GetAll()
+		for i = 1, #plys do
+			local ply = plys[i]
+			if PlayerKeyCompare(ply, ply_id, ply_name) then
+				ply.sean_spec_pos = ply_pos
+			end
+		end
+	end)
+	
 	local function CreateOrb(ply, cur_time)
 		if not ply.sean_orb then
 			ply.sean_orb = {}
@@ -301,8 +372,7 @@ if CLIENT then
 		
 		--center is the position of where the player was actually recorded at.
 		--Create a deep copy to better handle transitions between different positions.
-		local ply_pos = ply:GetPos()
-		ply.sean_orb.center = Vector(ply_pos.x, ply_pos.y, ply_pos.z)
+		ply.sean_orb.center = Vector(ply.sean_spec_pos.x, ply.sean_spec_pos.y, ply.sean_spec_pos.z)
 		
 		--Raise orb's position as the center is usually in the floor.
 		ply.sean_orb.pos_z_floor = ply.sean_orb.center.z + math.random(POS_Z_VARIANCE_FLOOR, POS_Z_VARIANCE_CEIL)
@@ -453,11 +523,11 @@ if CLIENT then
 				render.SetColorModulation(1, 1, 1)
 				render.SuppressEngineLighting(false)
 				render.MaterialOverride(nil)
-			elseif GetConVar("ttt2_seance_visual_orb_enabled"):GetBool() then
+			elseif GetConVar("ttt2_seance_visual_orb_enabled"):GetBool() and ply.sean_spec_pos then
 				local cur_time = CurTime()
 				if not ply.sean_orb then
 					CreateOrb(ply, cur_time)
-				elseif ply:GetPos() ~= ply.sean_orb.center then
+				elseif ply.sean_spec_pos ~= ply.sean_orb.center then
 					--Create a new orb state, which the current orb will transition to.
 					--Stagger orb creation via fade_lag, so that all of the orbs don't move at once.
 					if not ply.sean_orb.time_switch and (cur_time - ply.sean_orb.time_stamp >= MIN_TIME_BEFORE_SWITCH) then
@@ -466,7 +536,6 @@ if CLIENT then
 					
 					--print("SEAN_DEBUG Create Orb Check (" .. ply:GetName() .. "): cur_time=" .. tostring(cur_time) .. ", time_switch=" .. tostring(ply.sean_orb.time_switch) .. ", fade_lag=" .. tostring(ply.sean_orb.fade_lag))
 					if ply.sean_orb.time_switch and (cur_time >= ply.sean_orb.time_switch + ply.sean_orb.fade_lag) then
-						--SEAN_DEBUG --print("  CREATED NEW ORB") --SEAN_DEBUG
 						CreateOrb(ply, cur_time)
 					else
 						AdvancementStep(ply, cur_time)
@@ -487,6 +556,7 @@ if CLIENT then
 			local ply = plys[i]
 			ply.sean_orb = nil
 			ply.sean_sees_as_dead = nil
+			ply.sean_spec_pos = nil
 		end
 	end
 	hook.Add("TTTPrepareRound", "TTTPrepareRoundSeanceForClient", ResetSeanceDataForClient)

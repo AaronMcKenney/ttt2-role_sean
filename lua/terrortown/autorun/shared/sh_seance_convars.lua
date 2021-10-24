@@ -1,6 +1,7 @@
 --ConVar syncing
 CreateConVar("ttt2_seance_notification_time", "30", {FCVAR_ARCHIVE, FCVAR_NOTFIY})
 CreateConVar("ttt2_seance_visual_orb_enabled", "1", {FCVAR_ARCHIVE, FCVAR_NOTFIY})
+CreateConVar("ttt2_seance_visual_orb_update_time", "10", {FCVAR_ARCHIVE, FCVAR_NOTFIY})
 CreateConVar("ttt2_seance_dead_text_mode", "1", {FCVAR_ARCHIVE, FCVAR_NOTFIY})
 
 hook.Add("TTTUlxDynamicRCVars", "TTTUlxDynamicSeanceCVars", function(tbl)
@@ -25,6 +26,17 @@ hook.Add("TTTUlxDynamicRCVars", "TTTUlxDynamicSeanceCVars", function(tbl)
 		desc = "ttt2_seance_visual_orb_enabled (Def: 1)"
 	})
 	
+	--# How many seconds should pass before the orb's position is updated (<=0 will prevent updates, and orb will linger at death position)?
+	--  ttt2_seance_visual_orb_update_time [0..n] (default: 10)
+	table.insert(tbl[ROLE_SEANCE], {
+		cvar = "ttt2_seance_visual_orb_update_time",
+		slider = true,
+		min = 0,
+		max = 60,
+		decimal = 0,
+		desc = "ttt2_seance_visual_orb_update_time (Def: 10)"
+	})
+	
 	--# Will The Seance receive a text informing them about the recently deceased (Note: Information will not be up to date. It will be off by ttt2_seance_notification_time seconds)?
 	--  ttt2_seance_dead_text_mode [0..2] (default: 1)
 	--  # 0: No textual information
@@ -46,6 +58,7 @@ end)
 hook.Add("TTT2SyncGlobals", "AddSeanceGlobals", function()
 	SetGlobalInt("ttt2_seance_notification_time", GetConVar("ttt2_seance_notification_time"):GetInt())
 	SetGlobalBool("ttt2_seance_visual_orb_enabled", GetConVar("ttt2_seance_visual_orb_enabled"):GetBool())
+	SetGlobalInt("ttt2_seance_visual_orb_update_time", GetConVar("ttt2_seance_visual_orb_update_time"):GetInt())
 	SetGlobalInt("ttt2_seance_dead_text_mode", GetConVar("ttt2_seance_dead_text_mode"):GetInt())
 end)
 
@@ -54,6 +67,9 @@ cvars.AddChangeCallback("ttt2_seance_notification_time", function(name, old, new
 end)
 cvars.AddChangeCallback("ttt2_seance_visual_orb_enabled", function(name, old, new)
 	SetGlobalBool("ttt2_seance_visual_orb_enabled", tobool(tonumber(new)))
+end)
+cvars.AddChangeCallback("ttt2_seance_visual_orb_update_time", function(name, old, new)
+	SetGlobalInt("ttt2_seance_visual_orb_update_time", tonumber(new))
 end)
 cvars.AddChangeCallback("ttt2_seance_dead_text_mode", function(name, old, new)
 	SetGlobalInt("ttt2_seance_dead_text_mode", tonumber(new))
