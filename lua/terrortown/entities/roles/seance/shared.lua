@@ -66,6 +66,7 @@ if SERVER then
 		end
 		
 		net.Start("TTT2SeanceInformAboutAll")
+		net.WriteInt(GetConVar("ttt2_seance_dead_text_mode"):GetInt(), 16)
 		local plys = player.GetAll()
 		for i = 1, #plys do
 			local ply = plys[i]
@@ -123,6 +124,7 @@ if SERVER then
 			
 			if ply:GetSubRole() == ROLE_SEANCE then
 				net.Start("TTT2SeanceInformAboutDeath")
+				net.WriteInt(GetConVar("ttt2_seance_dead_text_mode"):GetInt(), 16)
 				net.WriteString(victim:SteamID64())
 				net.WriteString(victim:GetName())
 				net.WriteVector(death_pos)
@@ -139,7 +141,7 @@ if SERVER then
 	end
 	
 	hook.Add("TTT2PostPlayerDeath", "TTT2PostPlayerDeathSeance", function(victim, inflictor, attacker)
-		if GetRoundState() ~= ROUND_ACTIVE or IsInSpecDM(victim) then
+		if GetRoundState() ~= ROUND_ACTIVE or not IsValid(victim) or not victim:IsPlayer() or IsInSpecDM(victim) then
 			return
 		end
 		
@@ -249,9 +251,9 @@ if CLIENT then
 	
 	net.Receive("TTT2SeanceInformAboutAll", function()
 		local client = LocalPlayer()
-		local mode = GetConVar("ttt2_seance_dead_text_mode"):GetInt()
 		local num_dead_plys = 0
 		local name_list = ""
+		local mode = net.ReadInt(16)
 		
 		local plys = player.GetAll()
 		for i = 1, #plys do
@@ -295,7 +297,7 @@ if CLIENT then
 	
 	net.Receive("TTT2SeanceInformAboutDeath", function()
 		local client = LocalPlayer()
-		local mode = GetConVar("ttt2_seance_dead_text_mode"):GetInt()
+		local mode = net.ReadInt(16)
 		local ply_id = net.ReadString()
 		local ply_name = net.ReadString()
 		local ply_death_pos = net.ReadVector()
