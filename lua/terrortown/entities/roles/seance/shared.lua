@@ -340,6 +340,7 @@ if CLIENT then
 			local ply = plys[i]
 			if PlayerKeyCompare(ply, ply_id, ply_name) then
 				ply.sean_sees_as_dead = nil
+				ply.sean_spec_pos = nil
 				--print("SEAN_DEBUG TTT2SeanceInformAboutDisconnect: Marking " .. ply:GetName() .. " as disconnected.")
 				break
 			end
@@ -363,6 +364,8 @@ if CLIENT then
 	end)
 	
 	local function CreateOrb(ply, cur_time)
+		local x_var = 0
+		local y_var = 0
 		if not ply.sean_orb then
 			ply.sean_orb = {}
 		else
@@ -370,6 +373,10 @@ if CLIENT then
 			ply.sean_orb.stale = {}
 			ply.sean_orb.stale.pos = Vector(ply.sean_orb.pos.x, ply.sean_orb.pos.y, ply.sean_orb.pos.z)
 			ply.sean_orb.stale.color = Color(ply.sean_orb.color.r, ply.sean_orb.color.g, ply.sean_orb.color.b, ply.sean_orb.color.a)
+			
+			--Add variances to XY plane so multiple orbs don't occupy the same spot if multiple spectators all spectate the same player.
+			x_var = math.random(POS_XY_VARIANCE_FLOOR, POS_XY_VARIANCE_CEIL)
+			y_var = math.random(POS_XY_VARIANCE_FLOOR, POS_XY_VARIANCE_CEIL)
 		end
 		
 		--center is the position of where the player was actually recorded at.
@@ -380,8 +387,8 @@ if CLIENT then
 		ply.sean_orb.pos_z_floor = ply.sean_orb.center.z + math.random(POS_Z_VARIANCE_FLOOR, POS_Z_VARIANCE_CEIL)
 		ply.sean_orb.pos_z_raise = math.random(POS_Z_RAISE_FLOOR, POS_Z_RAISE_CEIL)
 		ply.sean_orb.pos = Vector(
-			ply.sean_orb.center.x + math.random(POS_XY_VARIANCE_FLOOR, POS_XY_VARIANCE_CEIL),
-			ply.sean_orb.center.y + math.random(POS_XY_VARIANCE_FLOOR, POS_XY_VARIANCE_CEIL),
+			ply.sean_orb.center.x + x_var,
+			ply.sean_orb.center.y + y_var,
 			ply.sean_orb.pos_z_floor
 		)
 		
