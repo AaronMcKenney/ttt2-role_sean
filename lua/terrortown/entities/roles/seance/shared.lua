@@ -80,7 +80,7 @@ if SERVER then
 	end
 	
 	local function UpdateSpectatorPos(spec_ply)
-		if GetRoundState() ~= ROUND_ACTIVE or not spec_ply.sean_sees_as_dead or (spec_ply:Alive() and not IsInSpecDM(spec_ply)) then
+		if GetRoundState() ~= ROUND_ACTIVE or not IsValid(spec_ply) or not spec_ply.sean_sees_as_dead or (spec_ply:Alive() and not IsInSpecDM(spec_ply)) then
 			return
 		end
 		
@@ -111,6 +111,10 @@ if SERVER then
 	end
 	
 	local function InformSeanceAboutTheDeceased(victim, num_dead_plys)
+		if GetRoundState() ~= ROUND_ACTIVE or not IsValid(victim) then
+			return
+		end
+		
 		local orb_enabled = GetConVar("ttt2_seance_visual_orb_enabled"):GetBool()
 		local orb_update_time = GetConVar("ttt2_seance_visual_orb_update_time"):GetInt()
 		local death_pos = victim:GetDeathPosition()
@@ -145,6 +149,7 @@ if SERVER then
 			return
 		end
 		
+		--Cache the number of dead players here, as the information is meant to be stale (subject to notify_delay)
 		local notify_delay = GetConVar("ttt2_seance_notification_time"):GetInt()
 		local num_dead_plys = GetNumDeadPlys()
 		
@@ -180,7 +185,7 @@ if SERVER then
 	end
 	
 	hook.Add("PlayerLoadout", "PlayerLoadoutSeance", function(ply)
-		if GetRoundState() ~= ROUND_ACTIVE or not ply:Alive() or IsInSpecDM(ply) then
+		if GetRoundState() ~= ROUND_ACTIVE or not IsValid(ply) or not ply:Alive() or IsInSpecDM(ply) then
 			return
 		end
 		
@@ -189,7 +194,7 @@ if SERVER then
 	end)
 	
 	hook.Add("PlayerDisconnected", "PlayerDisconnectedSeance", function(ply)
-		if GetRoundState() ~= ROUND_ACTIVE then
+		if GetRoundState() ~= ROUND_ACTIVE or not IsValid(ply) then
 			return
 		end
 		
