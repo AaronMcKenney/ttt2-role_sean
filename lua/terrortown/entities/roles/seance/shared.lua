@@ -33,9 +33,6 @@ function ROLE:Initialize()
 	roles.SetBaseRole(self, ROLE_INNOCENT)
 end
 
---Text Mode Enum for text updates
-TEXT_MODE = {SILENT = 0, UNNAMED = 1, NAMED = 2}
-
 local function IsInSpecDM(ply)
 	if SpecDM and (ply.IsGhost and ply:IsGhost()) then
 		return true
@@ -223,6 +220,8 @@ end
 
 if CLIENT then
 	--CONSTS
+	--Text Mode Enum for text updates
+	local TEXT_MODE = {SILENT = 0, UNNAMED = 1, NAMED = 2}
 	--The exact color that is used for spectators, except slightly transparent
 	local SPEC_COLOR_A_FLOOR = 22
 	local SPEC_COLOR_A_CEIL = 44
