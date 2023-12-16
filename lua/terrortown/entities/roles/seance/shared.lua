@@ -575,4 +575,47 @@ if CLIENT then
 	hook.Add("TTTPrepareRound", "TTTPrepareRoundSeanceForClient", ResetSeanceDataForClient)
 	hook.Add("TTTBeginRound", "TTTBeginRoundSeanceForClient", ResetSeanceDataForClient)
 	hook.Add("TTTEndRound", "TTTEndRoundSeanceForClient", ResetSeanceDataForClient)
+
+	-------------
+	-- CONVARS --
+	-------------
+	function ROLE:AddToSettingsMenu(parent)
+		local form = vgui.CreateTTT2Form(parent, "header_roles_additional")
+
+		form:MakeSlider({
+			serverConvar = "ttt2_seance_notification_time",
+			label = "label_seance_notification_time",
+			min = 0,
+			max = 120,
+			decimal = 0
+		})
+
+		form:MakeCheckBox({
+			serverConvar = "ttt2_seance_visual_orb_enabled",
+			label = "label_seance_visual_orb_enabled"
+		})
+
+		form:MakeSlider({
+			serverConvar = "ttt2_seance_visual_orb_update_time",
+			label = "label_seance_visual_orb_update_time",
+			min = 1,
+			max = 60,
+			decimal = 0
+		})
+
+		form:MakeComboBox({
+			serverConvar = "ttt2_seance_dead_text_mode",
+			label = "label_seance_dead_text_mode",
+			choices = {{
+				value = 0,
+				title = LANG.GetTranslation("label_seance_dead_text_mode_0")
+			},{
+				value = 1,
+				title = LANG.GetTranslation("label_seance_dead_text_mode_1")
+			},{
+				value = 2,
+				title = LANG.GetTranslation("label_seance_dead_text_mode_2")
+			}}
+		})
+	end
 end
